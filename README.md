@@ -1,8 +1,6 @@
 # CatchCache
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/catch_cache`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+An easy way to manage caching and flushing of Ruby objects. Especially useful when you are speeding a very slow API or page.
 
 ## Installation
 
@@ -22,17 +20,36 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+```ruby
+class ServiceWithAVerySlowQuery
+  include CatchCache::Cache
 
-## Development
+  def query
+    lead = get_some_lead
+    catch_then_cache("lead_timeline_logs_#{lead.id}") do
+      # Your very slow query which
+      # returns a bunch of Ruby objects
+    end
+  end
+end
+```
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+In your AR model:
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+```ruby
+In your AR model:
 
-## Contributing
+class LoanApplication < ActiveRecord::Base
+  include CatchCache::Flush
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/catch_cache.
+  belongs_to :lead
+
+  # Everytime the :after_commit AR callback is called,
+  # the Redis cache with id "lead_timeline_logs_#{lead.id}"
+  # is going to be flushed
+  cache_id :lead_timeline_logs, -> { lead.id }
+end
+```
 
 ## License
 
