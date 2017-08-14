@@ -9,18 +9,18 @@ module CatchCache
           define_method(:flush_cache!) do
             key_callbacks = ClassMethods.key_callbacks
 
-            begin
-              key_callbacks.keys.each do |key|
-                # Get the uniq id defined in the AR model
+            key_callbacks.keys.each do |key|
+              # Get the uniq id defined in the AR model
+              begin
                 uniq_id = instance_exec(&key_callbacks[key])
                 # Build the redis cache key
                 cache_key = "#{key.to_s}_#{uniq_id}"
                 redis = Redis.new
                 # Flush the key by setting it to nil
                 redis.set(cache_key, nil)
+              rescue NameError => e
+                # Nothing was flushed because of an error"
               end
-            rescue NameError => e
-              # Nothing was flushed because of an error"
             end
           end
 
