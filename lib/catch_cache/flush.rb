@@ -11,6 +11,7 @@ module CatchCache
 
             key_callbacks.keys.each do |key|
               # Get the uniq id defined in the AR model
+              binding.pry
               begin
                 uniq_id = instance_exec(&key_callbacks[key])
                 # Build the redis cache key
