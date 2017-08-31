@@ -42,7 +42,23 @@ module CatchCache
         # An example of a redis key is
         # "lead_logs_cache_<uniq_id>"
         def cache_id(*args)
+          options = args.last if args.last.is_a?(Hash)
+
           key_callbacks[args.first] = args.second
+          register_callbacks_for(options) if options.present?
+        end
+
+        private
+
+        def register_callbacks_for(options)
+          options.each do |callback, callable|
+            case callback
+            when Symbol
+              send(callback, callable) if respond_to?(callback)
+            else # It must be Proc or lambda
+              send(callback, &callable)
+            end
+          end
         end
       end
     end
