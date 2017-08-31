@@ -24,6 +24,16 @@ module CatchCache
             end
           end
 
+          define_method(:flush_all!) do
+            redis = Redis.new
+
+            registered_keys = ClassMethods.key_callbacks.keys
+            removable_keys = redis.keys.select do |key|
+              registered_keys.include?(key.gsub(/\_[0-9]+/, '').to_sym)
+            end
+
+            redis.del(removable_keys) if removable_keys.present?
+          end
         end
       end
 

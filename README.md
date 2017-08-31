@@ -51,6 +51,25 @@ class LoanApplication < ActiveRecord::Base
 end
 ```
 
+You could also register callbacks using `cache_id`
+
+```ruby
+class LoanApplication < ActiveRecord::Base
+  include CatchCache::Flush
+
+  cache_id :lead_timeline_logs, after_commit: :do_something_with_cache
+  cache_id :central_page_loan_plans, after_commit: -> { do_something_with_cache }
+end
+```
+
+## API
+- ### flush_all!
+Clears cache for all the keys registered with `cache_id`
+
+```ruby
+  cache_id :lead_timeline_logs, after_commit: :flush_all!
+```
+
 ## License
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
