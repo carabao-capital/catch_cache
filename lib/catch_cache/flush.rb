@@ -24,6 +24,16 @@ module CatchCache
             end
           end
 
+          define_method(:flush_all!) do
+            redis = Redis.new
+
+            registered_keys = ClassMethods.key_callbacks.keys
+            removable_keys = redis.keys.select do |key|
+              registered_keys.include?(key.gsub(/\_[0-9]+/, '').to_sym)
+            end
+
+            redis.del(removable_keys) if removable_keys.present?
+          end
         end
       end
 
@@ -42,7 +52,23 @@ module CatchCache
         # An example of a redis key is
         # "lead_logs_cache_<uniq_id>"
         def cache_id(*args)
+          options = args.last if args.last.is_a?(Hash)
+
           key_callbacks[args.first] = args.second
+          register_callbacks_for(options) if options.present?
+        end
+
+        private
+
+        def register_callbacks_for(options)
+          options.each do |callback, callable|
+            case callback
+            when Symbol
+              send(callback, callable) if respond_to?(callback)
+            else # It must be Proc or lambda
+              send(callback, &callable)
+            end
+          end
         end
       end
     end

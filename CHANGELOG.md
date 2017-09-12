@@ -1,3 +1,7 @@
+# 0.0.5
+
+- Add callback support, like `after_commit: :flush_all!`
+
 # 0.0.4
 
 - Fix catching of errors in `#flush_cache!`
