@@ -1,3 +1,7 @@
+# 0.2.0
+
+- Update usage/API because of issues
+
 # 0.1.0
 
 - Update usage
