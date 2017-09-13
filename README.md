@@ -20,6 +20,8 @@ Or install it yourself as:
 
 ## Usage
 
+### To cache objects
+
 ```ruby
 class ServiceWithAVerySlowQuery
   include CatchCache::Cache
@@ -34,6 +36,7 @@ class ServiceWithAVerySlowQuery
 end
 ```
 
+### :flush_cache!
 In your AR model:
 
 ```ruby
@@ -46,7 +49,7 @@ class LoanApplication < ActiveRecord::Base
   # the Redis cache with id "lead_timeline_logs_#{lead.id}"
   # is going to be flushed
 
-  cache_id :lead_timeline_logs, after_commit: -> { lead.id }
+  cache_id :lead_timeline_logs, after_commit: -> { flush_cache!: -> { lead.id } }
 end
 ```
 
