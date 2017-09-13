@@ -4,7 +4,6 @@ module CatchCache
       def included(klass)
         klass.class_eval do
           extend ClassMethods
-          after_commit :flush_cache!
 
           define_method(:flush_cache!) do
             key_callbacks = ClassMethods.key_callbacks
