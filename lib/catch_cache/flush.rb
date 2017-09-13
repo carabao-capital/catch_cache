@@ -4,17 +4,17 @@ module CatchCache
       def included(klass)
         klass.class_eval do
           extend ClassMethods
-          after_commit :flush_cache!
 
           define_method(:flush_cache!) do
             key_callbacks = ClassMethods.key_callbacks
 
-            key_callbacks.keys.each do |key|
+
+            key_callbacks.keys.select{|key| key.to_s.split("__").last == self.class.name.underscore }.each do |key|
               # Get the uniq id defined in the AR model
               begin
                 uniq_id = instance_exec(&key_callbacks[key])
                 # Build the redis cache key
-                cache_key = "#{key.to_s}_#{uniq_id}"
+                cache_key = "#{key.to_s.split("__").first}_#{uniq_id}"
                 redis = Redis.new
                 # Flush the key by setting it to nil
                 redis.set(cache_key, nil)
@@ -54,7 +54,7 @@ module CatchCache
         def cache_id(*args)
           options = args.last if args.last.is_a?(Hash)
 
-          key_callbacks[args.first] = args.second
+          key_callbacks["#{args.first}__#{self.name.underscore}".to_sym] = args.second
           register_callbacks_for(options) if options.present?
         end
 
