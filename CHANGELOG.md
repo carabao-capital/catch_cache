@@ -1,3 +1,9 @@
+# 0.1.0
+
+- Update usage
+- Fix issue where `:flush_cache` is being defined as an `:after_commit` callback no matter what
+- Fix storing and access of key callbacks procs
+
 # 0.0.5
 
 - Add callback support, like `after_commit: :flush_all!`

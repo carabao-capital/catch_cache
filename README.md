@@ -37,8 +37,6 @@ end
 In your AR model:
 
 ```ruby
-In your AR model:
-
 class LoanApplication < ActiveRecord::Base
   include CatchCache::Flush
 
@@ -47,27 +45,26 @@ class LoanApplication < ActiveRecord::Base
   # Everytime the :after_commit AR callback is called,
   # the Redis cache with id "lead_timeline_logs_#{lead.id}"
   # is going to be flushed
-  cache_id :lead_timeline_logs, -> { lead.id }
+
+  cache_id :lead_timeline_logs, after_commit: -> { lead.id }
 end
 ```
 
-You could also register callbacks using `cache_id`
+### :flush_all!
+Use `:flush_all` to clear the cache for all the keys with the suffix defined in `cache_id`
+
+In your AR model:
 
 ```ruby
-class LoanApplication < ActiveRecord::Base
+class AdminUser < ActiveRecord::Base
   include CatchCache::Flush
 
-  cache_id :lead_timeline_logs, after_commit: :do_something_with_cache
-  cache_id :central_page_loan_plans, after_commit: -> { do_something_with_cache }
-end
-```
+  # Everytime the :after_commit AR callback is called,
+  # all the Redis caches with suffix "lead_timeline_logs"
+  # are going to be flushed
 
-## API
-- ### flush_all!
-Clears cache for all the keys registered with `cache_id`
-
-```ruby
   cache_id :lead_timeline_logs, after_commit: :flush_all!
+end
 ```
 
 ## License
