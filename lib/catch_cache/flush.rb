@@ -8,7 +8,7 @@ module CatchCache
           define_method(:flush_cache!) do
             key_callbacks = ClassMethods.key_callbacks
 
-            key_callbacks.keys.select{|key| key.to_s.split("__").last == self.class.name.underscore }.each do |key|
+            key_callbacks.keys.select{|key| key.to_s.split("__").last == self.class.base_class.name.underscore }.each do |key|
               # Get the uniq id defined in the AR model
               begin
                 uniq_id = instance_exec(&key_callbacks[key])
