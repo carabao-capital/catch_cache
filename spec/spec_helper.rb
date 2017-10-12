@@ -1,4 +1,6 @@
 require "bundler/setup"
+require "redis"
+require "active_support"
 require "catch_cache"
 
 RSpec.configure do |config|
