@@ -49,12 +49,13 @@ class LoanApplication < ActiveRecord::Base
   # the Redis cache with id "lead_timeline_logs_#{lead.id}"
   # is going to be flushed
 
-  cache_id :lead_timeline_logs, after_commit: -> { flush_cache!: -> { lead.id } }
+  flush_cache :lead_timeline_logs, after_commit: :flush_by_id, id: -> { lead.id }
+  flush_cache :custom_field_form_logs, after_commit: :flush_by_id, id: 2
 end
 ```
 
 ### :flush_all!
-Use `:flush_all` to clear the cache for all the keys with the suffix defined in `cache_id`
+Use `:flush_all` to clear the cache for all the keys with the suffix of cache key.
 
 In your AR model:
 
@@ -66,7 +67,7 @@ class AdminUser < ActiveRecord::Base
   # all the Redis caches with suffix "lead_timeline_logs"
   # are going to be flushed
 
-  cache_id :lead_timeline_logs, after_commit: :flush_all!
+  flush_cache :lead_timeline_logs, after_commit: :flush_all
 end
 ```
 
