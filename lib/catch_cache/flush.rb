@@ -1,83 +1,80 @@
+require 'active_support/concern'
+
 module CatchCache
   module Flush
-    class << self
-      def included(klass)
-        klass.class_eval do
-          extend ClassMethods
 
-          define_method(:flush_cache!) do
-            key_callbacks = ClassMethods.key_callbacks
+    class NoIdGiven < StandardError
+      def initialize(msg = ':id parameter must be present')
+        super
+      end
+    end
 
-            key_callbacks.keys.select{|key| key.to_s.split("__").last == self.class.name.underscore }.each do |key|
-              # Get the uniq id defined in the AR model
-              begin
-                uniq_id = instance_exec(&key_callbacks[key])
-                # Build the redis cache key
-                cache_key = "#{key.to_s.split("__").first}_#{uniq_id}"
-                redis = Redis.new
-                # Flush the key by setting it to nil
-                redis.set(cache_key, nil)
-              rescue NameError => e
-                # Nothing was flushed because of an error"
-              end
-            end
-          end
+    extend ActiveSupport::Concern
 
-          define_method(:flush_all!) do
-            redis = Redis.new
+    AVAILABLE_CALLBACKS = [
+      :after_initialize, :after_find, :after_touch, :before_validation, :after_validation,
+      :before_save, :around_save, :after_save, :before_create, :around_create,
+      :after_create, :before_update, :around_update, :after_update,
+      :before_destroy, :around_destroy, :after_destroy, :after_commit, :after_rollback
+    ]
 
-            registered_keys = ClassMethods.key_callbacks.keys.map{|key| key.to_s.split("__").first.to_sym }.uniq
-            removable_keys = redis.keys.select do |key|
-              registered_keys.include?(key.gsub(/\_[0-9]+/, '').to_sym)
-            end
+    included do
+      class_attribute :registry
+    end
 
-            redis.del(removable_keys) if removable_keys.present?
-          end
-        end
+    module ClassMethods
+      def flush_cache(cache_name, *args)
+        self.registry ||= []
+
+        entry = register_entry(cache_name, *args)
+        register_callbacks_for(entry)
       end
 
-      module ClassMethods
-        mattr_accessor :key_callbacks
+      private
 
-        # here, we store the callbacks
-        # that builds the uniq identifiers
-        # for our caches
-        self.key_callbacks = {}
+      def register_entry(cache_name, args)
+        entry = { cache_name: cache_name, id: args[:id], args: args }
+        self.registry.push(entry)
 
-        # key_callbacks is hash that stores the a redis key with the proc value that
-        # evaluates to a unique id associated with that class. For example:
-        # `central_page_loan_plans` key defines the cache for the loading of loan plans
-        # index page.
-        #
-        # An example of a redis key is
-        # "central_page_loan_plans_<uniq_id>"
-        #
-        # Sample args for the cache_id are:
-        # cache_id :central_page_loan_plans, after_commit: { flush_cache!: -> { loan_plan.id } }
-        # cache_id :central_page_loan_plans, after_commit: :flush_all!
-        def cache_id(*args)
-          options = args.last if args.last.is_a?(Hash)
+        entry
+      end
 
-          value_args = options.values.first
-          proc_value = value_args.is_a?(Hash) ? value_args[:flush_cache!] : value_args
-          key_callbacks["#{args.first}__#{self.name.underscore}".to_sym] = proc_value
-          register_callbacks_for(options) if options.present?
+      def register_callbacks_for(entry)
+        callbacks = entry[:args].select do |key, value|
+          AVAILABLE_CALLBACKS.include?(key.to_sym)
         end
 
-        private
+        return if callbacks.empty?
 
-        def register_callbacks_for(options)
-          options.each do |callback, callable|
-            case callable
-            when Symbol
-              send(callback, callable) if respond_to?(callback)
-            else # It must be Proc or lambda
-              callable = callable.keys.first
-              send(callback, callable)
-            end
-          end
+        # callback is an array having values like
+        # [[:after_commit, :flush_by_id], [:after_create, flush_all]]
+        callbacks.each do |callback|
+          send(callback.first) { send(callback.last, entry) } if respond_to?(callback.first)
         end
       end
+    end
+
+    def flush_by_id(entry)
+      raise NoIdGiven unless entry[:id]
+
+      id = entry[:id].kind_of?(Proc) ? instance_exec(&entry[:id]) : entry[:id]
+      key = "#{entry[:cache_name]}_#{id}"
+
+      redis.del(key)
+    end
+
+    def flush_all(entry)
+      removable_keys = redis.keys.select do |key|
+        key.start_with?(entry[:cache_name].to_s)
+      end
+
+      redis.del(removable_keys) unless removable_keys.empty?
+    end
+
+    private
+
+    def redis
+      @redis ||= Redis.new
     end
   end
 end

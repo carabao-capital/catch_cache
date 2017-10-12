@@ -1,3 +1,7 @@
+# 0.3.0
+- Rename `cache_id` to `flush_cache`
+- Accept `id` param as a separate argument for `flush_by_id`
+
 # 0.2.0
 
 - Update usage/API because of issues
